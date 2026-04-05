@@ -5,11 +5,11 @@ import { ConfigService } from '@nestjs/config';
 export class GenerateService {
   constructor(private readonly config: ConfigService) {}
 
-  async generateSentences(topic: string, difficulty: string): Promise<string[]> {
+  async generateSentences(topic: string, difficulty: string): Promise<{ en: string; ka: string }[]> {
     const apiKey = this.config.get<string>('GROQ_API_KEY');
     const url = 'https://api.groq.com/openai/v1/chat/completions';
 
-    const prompt = `Generate exactly 10 English sentences about the topic "${topic}" at ${difficulty} difficulty level for language learners. Return ONLY a valid JSON array of 10 strings, no markdown, no code fences, no explanation. Example: ["Sentence one.", "Sentence two."]`;
+    const prompt = `Generate exactly 10 English sentences about the topic "${topic}" at ${difficulty} difficulty level for language learners. For each sentence, also provide its Georgian (ქართული) translation. Return ONLY a valid JSON array of 10 objects with "en" and "ka" keys, no markdown, no code fences, no explanation. Example: [{"en": "I love traveling.", "ka": "მიყვარს მოგზაურობა."}]`;
 
     let response: Response;
     try {
@@ -23,7 +23,7 @@ export class GenerateService {
           model: 'llama-3.3-70b-versatile',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.7,
-          max_tokens: 1024,
+          max_tokens: 2048,
         }),
       });
     } catch (err) {
@@ -56,7 +56,7 @@ export class GenerateService {
     }
 
     try {
-      const sentences = JSON.parse(match[0]) as string[];
+      const sentences = JSON.parse(match[0]) as { en: string; ka: string }[];
       if (!Array.isArray(sentences)) throw new Error('Not an array');
       return sentences;
     } catch {

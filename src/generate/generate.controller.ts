@@ -1,13 +1,18 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { IsIn, IsNotEmpty, IsString } from 'class-validator';
 import { GenerateService } from './generate.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 class GenerateSentencesDto {
   @ApiProperty({ example: 'travel', description: 'Topic or keyword for sentence generation' })
+  @IsString()
+  @IsNotEmpty()
   topic: string;
 
   @ApiProperty({ example: 'intermediate', enum: ['beginner', 'intermediate', 'advanced'] })
+  @IsString()
+  @IsIn(['beginner', 'intermediate', 'advanced'])
   difficulty: 'beginner' | 'intermediate' | 'advanced';
 }
 
@@ -20,6 +25,7 @@ export class GenerateController {
 
   @Post('sentences')
   async sentences(@Body() dto: GenerateSentencesDto) {
+    console.log('[GenerateController] dto:', JSON.stringify(dto));
     const sentences = await this.generateService.generateSentences(
       dto.topic,
       dto.difficulty ?? 'intermediate',
