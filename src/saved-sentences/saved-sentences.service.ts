@@ -23,4 +23,10 @@ export class SavedSentencesService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  async remove(userId: string, id: string) {
+    return this.prisma.savedSentence.delete({
+      where: { id, userId },
+    });
+  }
 }

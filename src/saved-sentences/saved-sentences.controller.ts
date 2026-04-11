@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -22,5 +22,11 @@ export class SavedSentencesController {
   @Get()
   findAll(@Req() req: Request) {
     return this.savedSentencesService.findAll((req.user as any).id);
+  }
+
+  @ApiOperation({ summary: 'Delete a saved sentence' })
+  @Delete(':id')
+  remove(@Req() req: Request, @Param('id') id: string) {
+    return this.savedSentencesService.remove((req.user as any).id, id);
   }
 }
