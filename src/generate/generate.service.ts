@@ -3,13 +3,13 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class GenerateService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly config: ConfigService) { }
 
   async generateSentences(topic: string, difficulty: string): Promise<{ en: string; ka: string }[]> {
     const apiKey = this.config.get<string>('GROQ_API_KEY');
     const url = 'https://api.groq.com/openai/v1/chat/completions';
 
-    const prompt = `Generate exactly 10 English sentences about the topic "${topic}" at ${difficulty} difficulty level for language learners. For each sentence, also provide its Georgian (ქართული) translation. Return ONLY a valid JSON array of 10 objects with "en" and "ka" keys, no markdown, no code fences, no explanation. Example: [{"en": "I love traveling.", "ka": "მიყვარს მოგზაურობა."}]`;
+    const prompt = `Generate exactly 10 English sentences about the topic "${topic}" at ${difficulty} difficulty level for language learners. For each sentence, also provide its Georgian (ქართული) translation. Use natural, everyday conversational Georgian language - prefer simple and commonly used Georgian words over rare or formal ones. Return ONLY a valid JSON array of 10 objects with "en" and "ka" keys, no markdown, no code fences, no explanation. Example: [{"en": "I love traveling.", "ka": "მიყვარს მოგზაურობა."}]`;
 
     let response: Response;
     try {
