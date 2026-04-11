@@ -27,10 +27,24 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   method   AuthMethod @default(CREDENTIALS)
-  Accounts Account[]
-  Session  Session[]
+  Accounts       Account[]
+  Session        Session[]
+  SavedSentences SavedSentence[]
 
   @@map("users")
+}
+
+model SavedSentence {
+  id        String   @id @default(uuid())
+  en        String
+  ka        String
+  topic     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+
+  @@map("saved_sentences")
 }
 
 model Account {
