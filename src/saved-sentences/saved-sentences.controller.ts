@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,5 +16,11 @@ export class SavedSentencesController {
   @Post()
   save(@Req() req: Request, @Body() dto: SaveSentenceDto) {
     return this.savedSentencesService.save((req.user as any).id, dto);
+  }
+
+  @ApiOperation({ summary: 'Get all saved sentences' })
+  @Get()
+  findAll(@Req() req: Request) {
+    return this.savedSentencesService.findAll((req.user as any).id);
   }
 }

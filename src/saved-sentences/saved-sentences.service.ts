@@ -16,4 +16,11 @@ export class SavedSentencesService {
       },
     });
   }
+
+  async findAll(userId: string) {
+    return this.prisma.savedSentence.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }
