@@ -10,6 +10,7 @@ import { MailModule } from './mail/mail.module';
 import { AdminModule } from './admin/admin.module';
 import { GenerateModule } from './generate/generate.module';
 import { SavedSentencesModule } from './saved-sentences/saved-sentences.module';
+import { TranslateModule } from './translate/translate.module';
 import { ThrottlerModule, ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { Injectable } from '@nestjs/common';
@@ -52,6 +53,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     AdminModule,
     GenerateModule,
     SavedSentencesModule,
+    TranslateModule,
   ],
   controllers: [AppController],
   providers: [
