@@ -30,6 +30,7 @@ model User {
   Accounts       Account[]
   Session        Session[]
   SavedSentences SavedSentence[]
+  SavedWords     SavedWord[]
 
   @@map("users")
 }
@@ -45,6 +46,19 @@ model SavedSentence {
   userId String @map("user_id")
 
   @@map("saved_sentences")
+}
+
+model SavedWord {
+  id          String   @id @default(uuid())
+  word        String
+  translation String
+  examples    Json
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+
+  @@map("saved_words")
 }
 
 model Account {
