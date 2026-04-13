@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SaveWordDto } from './dto/save-word.dto';
 
@@ -11,7 +12,7 @@ export class SavedWordsService {
       data: {
         word: dto.word,
         translation: dto.translation,
-        examples: dto.examples,
+        examples: dto.examples as unknown as Prisma.InputJsonValue,
         userId,
       },
     });
