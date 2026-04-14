@@ -41,8 +41,8 @@ async function bootstrap() {
 
   // swagger config
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Startup API')
-    .setDescription('API documentaion for Startup API')
+    .setTitle('LinguaAI API')
+    .setDescription('API documentation for LinguaAI')
     .setVersion('1.0.0')
     .setContact(
       'Dimitri',
