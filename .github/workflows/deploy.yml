@@ -1,4 +1,4 @@
-name: Deploy LinguaAI App
+name: Deploy LinguaAI Application
 on:
   push:
     branches:
