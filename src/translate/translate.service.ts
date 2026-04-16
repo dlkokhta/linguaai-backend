@@ -7,6 +7,10 @@ export interface WordTranslation {
   examples: { en: string; ka: string }[];
 }
 
+export interface TextTranslation {
+  translation: string;
+}
+
 @Injectable()
 export class TranslateService {
   constructor(private readonly config: ConfigService) {}
@@ -70,5 +74,57 @@ Return ONLY a valid JSON object with this exact shape, no markdown, no code fenc
       console.error('[TranslateService] Parse error:', match[0]);
       throw new InternalServerErrorException('Failed to parse translation result');
     }
+  }
+
+  async translateText(text: string): Promise<TextTranslation> {
+    const apiKey = this.config.get<string>('GROQ_API_KEY');
+    const url = 'https://api.groq.com/openai/v1/chat/completions';
+
+    const prompt = `Translate the following English text to Georgian (ქართული).
+Use natural, everyday Georgian. Return ONLY the translated text with no explanation, no markdown, no extra formatting.
+
+Text: ${text}`;
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.3,
+          max_tokens: 2048,
+        }),
+      });
+    } catch (err) {
+      console.error('[TranslateService] fetch error:', err);
+      throw new InternalServerErrorException('Failed to reach Groq API');
+    }
+
+    const raw = await response.text();
+
+    if (!response.ok) {
+      console.error('[TranslateService] Groq error response:', raw);
+      throw new InternalServerErrorException('Groq API returned an error');
+    }
+
+    let data: any;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new InternalServerErrorException('Failed to parse Groq response');
+    }
+
+    const translation: string = data?.choices?.[0]?.message?.content?.trim() ?? '';
+
+    if (!translation) {
+      throw new InternalServerErrorException('Empty translation returned');
+    }
+
+    return { translation };
   }
 }

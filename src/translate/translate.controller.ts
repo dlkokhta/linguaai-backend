@@ -11,6 +11,13 @@ class TranslateWordDto {
   word: string;
 }
 
+class TranslateTextDto {
+  @ApiProperty({ example: 'The weather is beautiful today.' })
+  @IsString()
+  @IsNotEmpty()
+  text: string;
+}
+
 @ApiTags('translate')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
@@ -22,5 +29,11 @@ export class TranslateController {
   @Post('word')
   translateWord(@Body() dto: TranslateWordDto) {
     return this.translateService.translateWord(dto.word);
+  }
+
+  @ApiOperation({ summary: 'Translate a text or paragraph to Georgian' })
+  @Post('text')
+  translateText(@Body() dto: TranslateTextDto) {
+    return this.translateService.translateText(dto.text);
   }
 }
