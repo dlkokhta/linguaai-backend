@@ -16,6 +16,18 @@ class GenerateSentencesDto {
   difficulty: 'beginner' | 'intermediate' | 'advanced';
 }
 
+class GenerateQuizDto {
+  @ApiProperty({ example: 'Present Continuous', description: 'English tense name' })
+  @IsString()
+  @IsNotEmpty()
+  tense: string;
+
+  @ApiProperty({ example: 'basic', enum: ['basic', 'intermediate', 'advanced'] })
+  @IsString()
+  @IsIn(['basic', 'intermediate', 'advanced'])
+  level: 'basic' | 'intermediate' | 'advanced';
+}
+
 @ApiTags('Generate')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
@@ -31,5 +43,12 @@ export class GenerateController {
       dto.difficulty ?? 'intermediate',
     );
     return { sentences };
+  }
+
+  @Post('quiz')
+  async quiz(@Body() dto: GenerateQuizDto) {
+    console.log('[GenerateController] quiz dto:', JSON.stringify(dto));
+    const questions = await this.generateService.generateQuiz(dto.tense, dto.level);
+    return { questions };
   }
 }

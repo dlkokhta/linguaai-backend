@@ -1,6 +1,13 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+export interface QuizQuestion {
+  display: string;
+  options: string[];
+  answers: string[];
+  full: string;
+}
+
 @Injectable()
 export class GenerateService {
   constructor(private readonly config: ConfigService) { }
@@ -62,6 +69,67 @@ export class GenerateService {
     } catch {
       console.error('[GenerateService] Array parse error:', match[0]);
       throw new InternalServerErrorException('Failed to parse sentences array');
+    }
+  }
+
+  async generateQuiz(tense: string, level: string): Promise<QuizQuestion[]> {
+    const apiKey = this.config.get<string>('GROQ_API_KEY');
+    const url = 'https://api.groq.com/openai/v1/chat/completions';
+
+    const prompt = `Generate exactly 10 fill-in-the-blank quiz sentences for the "${tense}" tense at "${level}" difficulty level for English learners.
+
+For each sentence replace only the verb word(s) that form the "${tense}" tense with "___" (one ___ per blank word). Provide 5-6 options: the correct answer words plus 3-4 plausible distractors, all shuffled. Keep sentences natural and appropriate for ${level} level.
+
+Return ONLY a valid JSON array of exactly 10 objects, no markdown, no explanation:
+[{"display":"sentence with ___ blanks","options":["word1","word2",...],"answers":["ans1"],"full":"complete correct sentence"}]
+
+Example for Present Continuous basic:
+[{"display":"She ___ ___ English right now.","options":["is","was","studying","studied","are","study"],"answers":["is","studying"],"full":"She is studying English right now."}]`;
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 3000,
+        }),
+      });
+    } catch (err) {
+      console.error('[GenerateService] quiz fetch error:', err);
+      throw new InternalServerErrorException('Failed to reach Groq API');
+    }
+
+    const raw = await response.text();
+    if (!response.ok) {
+      console.error('[GenerateService] Groq quiz error:', raw);
+      throw new InternalServerErrorException('Groq API returned an error');
+    }
+
+    let data: any;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new InternalServerErrorException('Failed to parse Groq response');
+    }
+
+    const text: string = data?.choices?.[0]?.message?.content ?? '';
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) {
+      console.error('[GenerateService] No quiz JSON found in:', text);
+      throw new InternalServerErrorException('Failed to extract quiz from response');
+    }
+
+    try {
+      const questions = JSON.parse(match[0]) as QuizQuestion[];
+      if (!Array.isArray(questions)) throw new Error('Not an array');
+      return questions;
+    } catch {
+      console.error('[GenerateService] Quiz array parse error:', match[0]);
+      throw new InternalServerErrorException('Failed to parse quiz array');
     }
   }
 }
