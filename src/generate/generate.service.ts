@@ -72,22 +72,25 @@ export class GenerateService {
     }
   }
 
-  async generateQuiz(tense: string, level: string): Promise<QuizQuestion[]> {
+  async generateQuiz(tense: string, formula: string, level: string): Promise<QuizQuestion[]> {
     const apiKey = this.config.get<string>('GROQ_API_KEY');
     const url = 'https://api.groq.com/openai/v1/chat/completions';
 
-    const prompt = `Generate exactly 10 fill-in-the-blank quiz sentences for the "${tense}" tense at "${level}" difficulty level for English learners.
+    const prompt = `Generate exactly 10 fill-in-the-blank quiz sentences strictly using the "${tense}" tense at "${level}" difficulty level for English learners.
+
+Tense formula: ${formula}
+Every single sentence MUST follow this exact formula. Do NOT use any other tense.
 
 Rules:
 - Replace only the verb word(s) that form the "${tense}" tense with "___" — one ___ per individual word
-- Each option MUST be a single word (no spaces). Never put two words together as one option.
-- Provide 5-6 options: the correct answer words (each as separate single words) plus 3-4 single-word distractors, all shuffled
+- Each option MUST be a single word with no spaces. Never combine two words into one option.
+- Provide 5-6 options: the correct answer words (each as a separate single word) plus 3-4 single-word distractors, all shuffled
 - Keep sentences natural and appropriate for ${level} level
 
 Return ONLY a valid JSON array of exactly 10 objects, no markdown, no explanation:
 [{"display":"sentence with ___ blanks","options":["word1","word2",...],"answers":["ans1","ans2"],"full":"complete correct sentence"}]
 
-Example for Present Continuous basic — notice every option is ONE word:
+Example for Present Continuous (formula: Subject + am/is/are + V-ing) — every option is ONE word:
 [{"display":"She ___ ___ English right now.","options":["is","was","studying","studied","are","study"],"answers":["is","studying"],"full":"She is studying English right now."}]`;
 
     let response: Response;
