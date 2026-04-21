@@ -72,11 +72,8 @@ export class GenerateService {
     }
   }
 
-  async generateQuiz(tense: string, formula: string, whenToUse: string, level: string): Promise<QuizQuestion[]> {
-    const apiKey = this.config.get<string>('GROQ_API_KEY');
-    const url = 'https://api.groq.com/openai/v1/chat/completions';
-
-    const prompt = `You are a strict English grammar quiz generator. Generate exactly 10 fill-in-the-blank sentences for the "${tense}" tense at "${level}" difficulty.
+  private buildQuizPrompt(tense: string, formula: string, whenToUse: string, level: string): string {
+    return `You are a strict English grammar quiz generator. Generate exactly 10 fill-in-the-blank sentences for the "${tense}" tense at "${level}" difficulty.
 
 TENSE DEFINITION:
 - Name: ${tense}
@@ -99,6 +96,22 @@ Example for Present Continuous (formula: Subject + am/is/are + V-ing):
 
 Example for Present Simple (formula: Subject + V1, s/es for he/she/it):
 [{"display":"He ___ coffee every morning.","options":["drinks","drinking","drank","is","drink","drunk"],"answers":["drinks"],"full":"He drinks coffee every morning."}]`;
+  }
+
+  private validateQuestion(q: QuizQuestion): boolean {
+    if (!q.display || !q.full || !Array.isArray(q.options) || !Array.isArray(q.answers)) return false;
+    const blankCount = (q.display.match(/___/g) || []).length;
+    if (blankCount === 0 || blankCount !== q.answers.length) return false;
+    if (q.options.some((o) => o.trim().includes(' '))) return false;
+    if (q.options.length < q.answers.length + 2) return false;
+    return q.answers.every((ans) =>
+      q.options.some((opt) => opt.toLowerCase() === ans.toLowerCase()),
+    );
+  }
+
+  private async callGroqForQuiz(prompt: string): Promise<QuizQuestion[]> {
+    const apiKey = this.config.get<string>('GROQ_API_KEY');
+    const url = 'https://api.groq.com/openai/v1/chat/completions';
 
     let response: Response;
     try {
@@ -132,19 +145,34 @@ Example for Present Simple (formula: Subject + V1, s/es for he/she/it):
 
     const text: string = data?.choices?.[0]?.message?.content ?? '';
     const match = text.match(/\[[\s\S]*\]/);
-    if (!match) {
-      console.error('[GenerateService] No quiz JSON found in:', text);
-      throw new InternalServerErrorException('Failed to extract quiz from response');
-    }
+    if (!match) return [];
 
     try {
-      const questions = JSON.parse(match[0]) as QuizQuestion[];
-      if (!Array.isArray(questions)) throw new Error('Not an array');
-      return questions;
+      const questions = JSON.parse(match[0]);
+      return Array.isArray(questions) ? questions : [];
     } catch {
-      console.error('[GenerateService] Quiz array parse error:', match[0]);
-      throw new InternalServerErrorException('Failed to parse quiz array');
+      return [];
     }
+  }
+
+  async generateQuiz(tense: string, formula: string, whenToUse: string, level: string): Promise<QuizQuestion[]> {
+    const prompt = this.buildQuizPrompt(tense, formula, whenToUse, level);
+
+    const firstBatch = await this.callGroqForQuiz(prompt);
+    let valid = firstBatch.filter((q) => this.validateQuestion(q));
+
+    if (valid.length < 10) {
+      console.warn(`[GenerateService] Only ${valid.length} valid quiz questions, retrying…`);
+      const secondBatch = await this.callGroqForQuiz(prompt);
+      const secondValid = secondBatch.filter((q) => this.validateQuestion(q));
+      valid = [...valid, ...secondValid];
+    }
+
+    if (valid.length === 0) {
+      throw new InternalServerErrorException('Failed to generate valid quiz questions');
+    }
+
+    return valid.slice(0, 10);
   }
 }
 
