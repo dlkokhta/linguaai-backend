@@ -27,6 +27,11 @@ class GenerateQuizDto {
   @IsNotEmpty()
   formula: string;
 
+  @ApiProperty({ example: 'Use for actions happening right now or temporary situations.' })
+  @IsString()
+  @IsNotEmpty()
+  whenToUse: string;
+
   @ApiProperty({ example: 'basic', enum: ['basic', 'intermediate', 'advanced'] })
   @IsString()
   @IsIn(['basic', 'intermediate', 'advanced'])
@@ -53,7 +58,7 @@ export class GenerateController {
   @Post('quiz')
   async quiz(@Body() dto: GenerateQuizDto) {
     console.log('[GenerateController] quiz dto:', JSON.stringify(dto));
-    const questions = await this.generateService.generateQuiz(dto.tense, dto.formula, dto.level);
+    const questions = await this.generateService.generateQuiz(dto.tense, dto.formula, dto.whenToUse, dto.level);
     return { questions };
   }
 }

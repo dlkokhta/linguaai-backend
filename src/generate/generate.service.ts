@@ -72,26 +72,33 @@ export class GenerateService {
     }
   }
 
-  async generateQuiz(tense: string, formula: string, level: string): Promise<QuizQuestion[]> {
+  async generateQuiz(tense: string, formula: string, whenToUse: string, level: string): Promise<QuizQuestion[]> {
     const apiKey = this.config.get<string>('GROQ_API_KEY');
     const url = 'https://api.groq.com/openai/v1/chat/completions';
 
-    const prompt = `Generate exactly 10 fill-in-the-blank quiz sentences strictly using the "${tense}" tense at "${level}" difficulty level for English learners.
+    const prompt = `You are a strict English grammar quiz generator. Generate exactly 10 fill-in-the-blank sentences for the "${tense}" tense at "${level}" difficulty.
 
-Tense formula: ${formula}
-Every single sentence MUST follow this exact formula. Do NOT use any other tense.
+TENSE DEFINITION:
+- Name: ${tense}
+- Formula: ${formula}
+- When to use: ${whenToUse}
 
-Rules:
-- Replace only the verb word(s) that form the "${tense}" tense with "___" — one ___ per individual word
-- Each option MUST be a single word with no spaces. Never combine two words into one option.
-- Provide 5-6 options: the correct answer words (each as a separate single word) plus 3-4 single-word distractors, all shuffled
-- Keep sentences natural and appropriate for ${level} level
+CRITICAL RULES — read carefully:
+1. EVERY sentence must strictly follow the formula: ${formula}. No other tense is allowed.
+2. Use time markers/context words that naturally belong to the ${tense} tense (e.g. "every day" for Present Simple, "right now/at the moment" for Present Continuous, "yesterday/last week" for Past Simple, "already/just/ever" for Present Perfect, etc.)
+3. Replace ONLY the verb word(s) that form the "${tense}" tense with "___" — one ___ per individual word
+4. Every option must be a SINGLE word with no spaces — never combine two words as one option
+5. Provide 5-6 options: correct answer words (each as a separate single word) + 3-4 single-word distractors, all shuffled
+6. Distractors should be from other tenses of the same verb or auxiliary verbs that do NOT match the formula
 
 Return ONLY a valid JSON array of exactly 10 objects, no markdown, no explanation:
 [{"display":"sentence with ___ blanks","options":["word1","word2",...],"answers":["ans1","ans2"],"full":"complete correct sentence"}]
 
-Example for Present Continuous (formula: Subject + am/is/are + V-ing) — every option is ONE word:
-[{"display":"She ___ ___ English right now.","options":["is","was","studying","studied","are","study"],"answers":["is","studying"],"full":"She is studying English right now."}]`;
+Example for Present Continuous (formula: Subject + am/is/are + V-ing):
+[{"display":"She ___ ___ English right now.","options":["is","was","studying","studied","are","study"],"answers":["is","studying"],"full":"She is studying English right now."}]
+
+Example for Present Simple (formula: Subject + V1, s/es for he/she/it):
+[{"display":"He ___ coffee every morning.","options":["drinks","drinking","drank","is","drink","drunk"],"answers":["drinks"],"full":"He drinks coffee every morning."}]`;
 
     let response: Response;
     try {
