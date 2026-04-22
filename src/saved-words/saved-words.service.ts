@@ -8,6 +8,10 @@ export class SavedWordsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async save(userId: string, dto: SaveWordDto) {
+    const existing = await this.prisma.savedWord.findFirst({
+      where: { userId, word: dto.word },
+    });
+    if (existing) return existing;
     return this.prisma.savedWord.create({
       data: {
         word: dto.word,
