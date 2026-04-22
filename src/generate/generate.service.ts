@@ -196,7 +196,15 @@ Example for Present Simple (Subject + V1, s/es for he/she/it):
     const apiKey = this.config.get<string>('GROQ_API_KEY');
     const url = 'https://api.groq.com/openai/v1/chat/completions';
 
-    const systemMessage = `You are an English language practice generator for Georgian speakers. Generate exactly one sentence per requested tense. Every sentence MUST strictly use its specified tense — never mix tenses. Georgian sentences must sound natural and use simple everyday language, not literal translations.`;
+    const systemMessage = `You are an English language practice generator for Georgian speakers. Generate exactly one sentence per requested tense. Every sentence MUST strictly use its specified tense — never mix tenses.
+
+CRITICAL GEORGIAN RULES:
+- Georgian sentences must be grammatically correct with proper Georgian verb conjugations
+- NEVER do word-by-word translation from English — Georgian has completely different grammar
+- Use natural everyday Georgian that a native speaker would actually say
+- Georgian verbs already encode subject/object, so pronouns are often optional
+- Example of BAD Georgian (literal): "მე ახლა ვაკეთებ სამუშაო" ← wrong grammar
+- Example of GOOD Georgian: "მე ახლა ვმუშაობ" or "ახლა ვამზადებ საუზმეს" ← correct`;
 
     const prompt = `Generate one practice sentence for each of these tenses: ${tenses.join(', ')}.
 Topic: ${topic || 'general daily life'}.
@@ -204,18 +212,19 @@ Topic: ${topic || 'general daily life'}.
 For each tense return:
 - "tense": the tense name (e.g., "Present Simple")
 - "label": tense name + use case in parentheses (e.g., "Present Simple (Habit)")
-- "ka": natural Georgian sentence (everyday Georgian, not a literal translation)
-- "en": correct English sentence strictly in the specified tense
+- "ka": grammatically correct natural Georgian sentence — NOT a word-by-word translation
+- "en": correct English sentence strictly in the specified tense — write as a single line with spaces between words, NO newlines
 - "hints": array of 3-4 key words from the English sentence
-- "options": array containing EVERY individual word from the English sentence (each word separate, split by spaces) PLUS 3-4 single-word distractors that do NOT belong, all shuffled randomly
+- "options": array containing EVERY individual word from the English sentence (each word separate, split by spaces) PLUS 3-4 single-word distractors that do NOT belong
 
 Rules:
 1. The English sentence MUST use exactly the tense specified — no exceptions.
 2. Every entry in "options" must be a single word (no spaces inside a word).
 3. "options" must contain all words needed to assemble the complete "en" sentence plus 3-4 extra distractor words.
+4. The "en" value must be a plain string on one line — never use newlines inside it.
 
 Return ONLY a valid JSON array of exactly ${tenses.length} objects, no markdown, no explanation:
-[{"tense":"Present Simple","label":"Present Simple (Habit)","ka":"მე ყოველდღე ვიყენებ ლეპტოპს სამუშაოდ.","en":"I use my laptop every day.","hints":["use","every","day"],"options":["use","my","I","laptop","day","every","going","was","studied","never"]}]`;
+[{"tense":"Present Simple","label":"Present Simple (Habit)","ka":"ყოველ დილა ყავას ვსვამ.","en":"I drink coffee every morning.","hints":["drink","coffee","morning"],"options":["I","drink","coffee","every","morning","was","going","studied","never"]}]`;
 
     let response: Response;
     try {
@@ -260,7 +269,11 @@ Return ONLY a valid JSON array of exactly ${tenses.length} objects, no markdown,
     try {
       const questions = JSON.parse(match[0]) as TensePracticeQuestion[];
       if (!Array.isArray(questions) || questions.length === 0) throw new Error('Empty');
-      return questions;
+      return questions.map((q) => ({
+        ...q,
+        en: q.en.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim(),
+        ka: q.ka.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim(),
+      }));
     } catch {
       throw new InternalServerErrorException('Failed to parse practice questions');
     }
