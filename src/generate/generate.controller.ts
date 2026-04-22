@@ -1,6 +1,6 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiProperty, ApiTags } from '@nestjs/swagger';
-import { IsIn, IsNotEmpty, IsString } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { GenerateService } from './generate.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -38,6 +38,20 @@ class GenerateQuizDto {
   level: 'basic' | 'intermediate' | 'advanced';
 }
 
+class GenerateTensePracticeDto {
+  @ApiProperty({ example: ['Present Simple', 'Past Simple'], description: 'List of tenses (1–5)' })
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMinSize(1)
+  @ArrayMaxSize(5)
+  tenses: string[];
+
+  @ApiProperty({ example: 'work', required: false })
+  @IsString()
+  @IsOptional()
+  topic?: string;
+}
+
 @ApiTags('Generate')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
@@ -59,6 +73,13 @@ export class GenerateController {
   async quiz(@Body() dto: GenerateQuizDto) {
     console.log('[GenerateController] quiz dto:', JSON.stringify(dto));
     const questions = await this.generateService.generateQuiz(dto.tense, dto.formula, dto.whenToUse, dto.level);
+    return { questions };
+  }
+
+  @Post('tense-practice')
+  async tensePractice(@Body() dto: GenerateTensePracticeDto) {
+    console.log('[GenerateController] tense-practice dto:', JSON.stringify(dto));
+    const questions = await this.generateService.generateTensePractice(dto.tenses, dto.topic ?? '');
     return { questions };
   }
 }

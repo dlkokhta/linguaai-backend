@@ -1,6 +1,15 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+export interface TensePracticeQuestion {
+  tense: string;
+  label: string;
+  ka: string;
+  en: string;
+  hints: string[];
+  options: string[];
+}
+
 export interface QuizQuestion {
   display: string;
   options: string[];
@@ -181,6 +190,80 @@ Example for Present Simple (Subject + V1, s/es for he/she/it):
     }
 
     return valid.slice(0, 10);
+  }
+
+  async generateTensePractice(tenses: string[], topic: string): Promise<TensePracticeQuestion[]> {
+    const apiKey = this.config.get<string>('GROQ_API_KEY');
+    const url = 'https://api.groq.com/openai/v1/chat/completions';
+
+    const systemMessage = `You are an English language practice generator for Georgian speakers. Generate exactly one sentence per requested tense. Every sentence MUST strictly use its specified tense — never mix tenses. Georgian sentences must sound natural and use simple everyday language, not literal translations.`;
+
+    const prompt = `Generate one practice sentence for each of these tenses: ${tenses.join(', ')}.
+Topic: ${topic || 'general daily life'}.
+
+For each tense return:
+- "tense": the tense name (e.g., "Present Simple")
+- "label": tense name + use case in parentheses (e.g., "Present Simple (Habit)")
+- "ka": natural Georgian sentence (everyday Georgian, not a literal translation)
+- "en": correct English sentence strictly in the specified tense
+- "hints": array of 3-4 key words from the English sentence
+- "options": array containing EVERY individual word from the English sentence (each word separate, split by spaces) PLUS 3-4 single-word distractors that do NOT belong, all shuffled randomly
+
+Rules:
+1. The English sentence MUST use exactly the tense specified — no exceptions.
+2. Every entry in "options" must be a single word (no spaces inside a word).
+3. "options" must contain all words needed to assemble the complete "en" sentence plus 3-4 extra distractor words.
+
+Return ONLY a valid JSON array of exactly ${tenses.length} objects, no markdown, no explanation:
+[{"tense":"Present Simple","label":"Present Simple (Habit)","ka":"მე ყოველდღე ვიყენებ ლეპტოპს სამუშაოდ.","en":"I use my laptop every day.","hints":["use","every","day"],"options":["use","my","I","laptop","day","every","going","was","studied","never"]}]`;
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemMessage },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.4,
+          max_tokens: 2048,
+        }),
+      });
+    } catch (err) {
+      console.error('[GenerateService] tense practice fetch error:', err);
+      throw new InternalServerErrorException('Failed to reach Groq API');
+    }
+
+    const raw = await response.text();
+    if (!response.ok) {
+      console.error('[GenerateService] Groq tense practice error:', raw);
+      throw new InternalServerErrorException('Groq API returned an error');
+    }
+
+    let data: any;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new InternalServerErrorException('Failed to parse Groq response');
+    }
+
+    const text: string = data?.choices?.[0]?.message?.content ?? '';
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) {
+      console.error('[GenerateService] No JSON array in tense practice response:', text);
+      throw new InternalServerErrorException('Failed to extract practice questions from response');
+    }
+
+    try {
+      const questions = JSON.parse(match[0]) as TensePracticeQuestion[];
+      if (!Array.isArray(questions) || questions.length === 0) throw new Error('Empty');
+      return questions;
+    } catch {
+      throw new InternalServerErrorException('Failed to parse practice questions');
+    }
   }
 }
 
