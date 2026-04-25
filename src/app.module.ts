@@ -12,6 +12,7 @@ import { GenerateModule } from './generate/generate.module';
 import { SavedSentencesModule } from './saved-sentences/saved-sentences.module';
 import { TranslateModule } from './translate/translate.module';
 import { SavedWordsModule } from './saved-words/saved-words.module';
+import { WeeklyGoalModule } from './weekly-goal/weekly-goal.module';
 import { ThrottlerModule, ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { Injectable } from '@nestjs/common';
@@ -56,6 +57,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     SavedSentencesModule,
     TranslateModule,
     SavedWordsModule,
+    WeeklyGoalModule,
   ],
   controllers: [AppController],
   providers: [
