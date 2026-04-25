@@ -193,8 +193,8 @@ Example for Present Simple (Subject + V1, s/es for he/she/it):
   }
 
   async generateTensePractice(tenses: string[], topic: string): Promise<TensePracticeQuestion[]> {
-    const apiKey = this.config.get<string>('GROQ_API_KEY');
-    const url = 'https://api.groq.com/openai/v1/chat/completions';
+    const apiKey = this.config.get<string>('GEMINI_API_KEY');
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const systemMessage = `You are an English language practice generator for Georgian speakers. Generate exactly one sentence per requested tense. Every sentence MUST strictly use its specified tense — never mix tenses.
 
@@ -230,36 +230,32 @@ Return ONLY a valid JSON array of exactly ${tenses.length} objects, no markdown,
     try {
       response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: systemMessage },
-            { role: 'user', content: prompt },
-          ],
-          temperature: 0.4,
-          max_tokens: 2048,
+          system_instruction: { parts: [{ text: systemMessage }] },
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
         }),
       });
     } catch (err) {
       console.error('[GenerateService] tense practice fetch error:', err);
-      throw new InternalServerErrorException('Failed to reach Groq API');
+      throw new InternalServerErrorException('Failed to reach Gemini API');
     }
 
     const raw = await response.text();
     if (!response.ok) {
-      console.error('[GenerateService] Groq tense practice error:', raw);
-      throw new InternalServerErrorException('Groq API returned an error');
+      console.error('[GenerateService] Gemini tense practice error:', raw);
+      throw new InternalServerErrorException('Gemini API returned an error');
     }
 
     let data: any;
     try {
       data = JSON.parse(raw);
     } catch {
-      throw new InternalServerErrorException('Failed to parse Groq response');
+      throw new InternalServerErrorException('Failed to parse Gemini response');
     }
 
-    const text: string = data?.choices?.[0]?.message?.content ?? '';
+    const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     const match = text.match(/\[[\s\S]*\]/);
     if (!match) {
       console.error('[GenerateService] No JSON array in tense practice response:', text);
