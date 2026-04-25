@@ -55,6 +55,7 @@ LinguaAI is an AI-powered English language learning platform built for Georgian 
 - **Translate Text** — full paragraph translation
 - **Saved Sentences** — save, list, and delete sentences per user
 - **Saved Words** — save, list, and delete vocabulary words per user
+- **Weekly Goal** — set weekly sentence and word targets; track progress from Monday of the current week
 
 ### Auth & Platform
 - Register & login with email/password
@@ -219,6 +220,13 @@ npm run test:e2e      # E2E tests
 | GET | `/saved-words` | Get all saved words |
 | DELETE | `/saved-words/:id` | Delete a saved word |
 
+### Weekly Goal (`/weekly-goal`) — requires JWT
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/weekly-goal` | Get current goal and this week's progress |
+| POST | `/weekly-goal` | Set or update weekly sentence and word goals |
+
 ---
 
 ## Project Structure
@@ -232,6 +240,7 @@ src/
 ├── translate/         # Translation module
 ├── saved-sentences/   # Saved sentences per user
 ├── saved-words/       # Saved words per user
+├── weekly-goal/       # Weekly goal — set targets and track weekly progress
 ├── mail/              # Mail module — Resend email service
 ├── prisma/            # Prisma service
 └── libs/              # Shared utilities, validators, exception filters
