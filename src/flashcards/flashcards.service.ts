@@ -3,6 +3,8 @@ import { CardType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Grade, sm2 } from './sm2';
 
+const NEW_CARDS_PER_SESSION = 20;
+
 @Injectable()
 export class FlashcardsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -40,13 +42,22 @@ export class FlashcardsService {
   async getQueue(userId: string) {
     await this.syncCards(userId);
 
-    const cards = await this.prisma.flashcard.findMany({
-      where: { userId, dueDate: { lte: new Date() } },
-      include: { savedWord: true, savedSentence: true },
-      orderBy: { dueDate: 'asc' },
-    });
+    const now = new Date();
+    const [reviewCards, newCards] = await Promise.all([
+      this.prisma.flashcard.findMany({
+        where: { userId, dueDate: { lte: now }, repetitions: { gt: 0 } },
+        include: { savedWord: true, savedSentence: true },
+        orderBy: { dueDate: 'asc' },
+      }),
+      this.prisma.flashcard.findMany({
+        where: { userId, dueDate: { lte: now }, repetitions: 0 },
+        include: { savedWord: true, savedSentence: true },
+        orderBy: { createdAt: 'asc' },
+        take: NEW_CARDS_PER_SESSION,
+      }),
+    ]);
 
-    return cards.map((card) => ({
+    return [...reviewCards, ...newCards].map((card) => ({
       ...card,
       preview: {
         again: sm2(card, 'AGAIN').intervalDays,
@@ -74,9 +85,12 @@ export class FlashcardsService {
     await this.syncCards(userId);
 
     const now = new Date();
-    const [due, newCards, learned, total] = await Promise.all([
+    const [reviewDue, newDue, newCards, learned, total] = await Promise.all([
       this.prisma.flashcard.count({
-        where: { userId, dueDate: { lte: now } },
+        where: { userId, dueDate: { lte: now }, repetitions: { gt: 0 } },
+      }),
+      this.prisma.flashcard.count({
+        where: { userId, dueDate: { lte: now }, repetitions: 0 },
       }),
       this.prisma.flashcard.count({
         where: { userId, repetitions: 0 },
@@ -87,6 +101,13 @@ export class FlashcardsService {
       this.prisma.flashcard.count({ where: { userId } }),
     ]);
 
-    return { due, new: newCards, learned, total };
+    // "due" mirrors what getQueue will actually serve, so the start
+    // screen count matches the session size.
+    return {
+      due: reviewDue + Math.min(newDue, NEW_CARDS_PER_SESSION),
+      new: newCards,
+      learned,
+      total,
+    };
   }
 }

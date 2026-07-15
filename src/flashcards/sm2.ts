@@ -43,7 +43,11 @@ export function sm2(
     intervalDays = Math.min(intervalDays, MAX_INTERVAL_DAYS);
   }
 
-  const dueDate = new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+  // Due dates land on a UTC day boundary so a card graded at night
+  // is already reviewable the next morning.
+  const dueDate = new Date(now);
+  dueDate.setUTCHours(0, 0, 0, 0);
+  dueDate.setUTCDate(dueDate.getUTCDate() + intervalDays);
 
   return { easeFactor, intervalDays, repetitions, dueDate };
 }

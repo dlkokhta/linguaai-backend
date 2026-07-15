@@ -4,8 +4,7 @@ const NOW = new Date('2026-07-15T12:00:00Z');
 
 const newCard: Sm2State = { easeFactor: 2.5, intervalDays: 0, repetitions: 0 };
 
-const daysFromNow = (days: number) =>
-  new Date(NOW.getTime() + days * 24 * 60 * 60 * 1000);
+const utcMidnight = (isoDay: string) => new Date(`${isoDay}T00:00:00Z`);
 
 describe('sm2', () => {
   it('schedules a new card answered GOOD for 1 day', () => {
@@ -14,7 +13,7 @@ describe('sm2', () => {
     expect(result.repetitions).toBe(1);
     expect(result.intervalDays).toBe(1);
     expect(result.easeFactor).toBe(2.5);
-    expect(result.dueDate).toEqual(daysFromNow(1));
+    expect(result.dueDate).toEqual(utcMidnight('2026-07-16'));
   });
 
   it('schedules the second GOOD answer for 3 days', () => {
@@ -37,7 +36,7 @@ describe('sm2', () => {
 
     expect(result.repetitions).toBe(3);
     expect(result.intervalDays).toBe(8); // round(3 * 2.5)
-    expect(result.dueDate).toEqual(daysFromNow(8));
+    expect(result.dueDate).toEqual(utcMidnight('2026-07-23'));
   });
 
   it('schedules a new card answered EASY for 3 days and raises the ease factor', () => {
@@ -72,7 +71,15 @@ describe('sm2', () => {
     expect(result.repetitions).toBe(0);
     expect(result.intervalDays).toBe(0);
     expect(result.easeFactor).toBeCloseTo(2.3);
-    expect(result.dueDate).toEqual(NOW);
+    expect(result.dueDate).toEqual(utcMidnight('2026-07-15'));
+  });
+
+  it('makes a card graded late at night due the next morning', () => {
+    const lateNight = new Date('2026-07-15T23:30:00Z');
+    const result = sm2(newCard, 'GOOD', lateNight);
+
+    expect(result.intervalDays).toBe(1);
+    expect(result.dueDate).toEqual(utcMidnight('2026-07-16'));
   });
 
   it('never lowers the ease factor below 1.3', () => {
