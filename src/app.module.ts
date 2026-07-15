@@ -13,7 +13,12 @@ import { SavedSentencesModule } from './saved-sentences/saved-sentences.module';
 import { TranslateModule } from './translate/translate.module';
 import { SavedWordsModule } from './saved-words/saved-words.module';
 import { WeeklyGoalModule } from './weekly-goal/weekly-goal.module';
-import { ThrottlerModule, ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
+import { FlashcardsModule } from './flashcards/flashcards.module';
+import {
+  ThrottlerModule,
+  ThrottlerGuard,
+  ThrottlerException,
+} from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { Injectable } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
@@ -42,7 +47,10 @@ class CustomThrottlerGuard extends ThrottlerGuard {
       pinoHttp: {
         transport:
           process.env.NODE_ENV !== 'production'
-            ? { target: 'pino-pretty', options: { colorize: true, singleLine: true } }
+            ? {
+                target: 'pino-pretty',
+                options: { colorize: true, singleLine: true },
+              }
             : undefined,
         level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
         autoLogging: true,
@@ -58,6 +66,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     TranslateModule,
     SavedWordsModule,
     WeeklyGoalModule,
+    FlashcardsModule,
   ],
   controllers: [AppController],
   providers: [
