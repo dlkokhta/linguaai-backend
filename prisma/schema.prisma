@@ -101,6 +101,7 @@ model Flashcard {
   intervalDays Int      @default(0) @map("interval_days")
   repetitions  Int      @default(0)
   dueDate      DateTime @default(now()) @map("due_date")
+  suspended    Boolean  @default(false)
 
   savedWord   SavedWord? @relation(fields: [savedWordId], references: [id], onDelete: Cascade)
   savedWordId String?    @unique @map("saved_word_id")

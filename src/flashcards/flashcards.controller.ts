@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -30,6 +31,12 @@ export class FlashcardsController {
   @Get('stats')
   getStats(@Req() req: Request) {
     return this.flashcardsService.getStats((req.user as { id: string }).id);
+  }
+
+  @ApiOperation({ summary: 'Suspend a card (remove it from the deck)' })
+  @Patch(':id/suspend')
+  suspend(@Req() req: Request, @Param('id') id: string) {
+    return this.flashcardsService.suspend((req.user as { id: string }).id, id);
   }
 
   @ApiOperation({ summary: 'Answer a card and reschedule it' })

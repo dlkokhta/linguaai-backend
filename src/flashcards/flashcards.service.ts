@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CardType } from '@prisma/client';
+import { CardType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Grade, sm2 } from './sm2';
 
@@ -39,18 +39,46 @@ export class FlashcardsService {
     });
   }
 
+  // Cards excluded from study: suspended ones, and word cards whose
+  // translation is identical to the word (nothing to learn from them).
+  private async activeCardsWhere(
+    userId: string,
+  ): Promise<Prisma.FlashcardWhereInput> {
+    const words = await this.prisma.savedWord.findMany({
+      where: { userId },
+      select: { id: true, word: true, translation: true },
+    });
+
+    const normalize = (s: string) => s.trim().toLowerCase();
+    const degenerateWordIds = words
+      .filter((w) => normalize(w.word) === normalize(w.translation))
+      .map((w) => w.id);
+
+    return {
+      userId,
+      suspended: false,
+      ...(degenerateWordIds.length > 0 && {
+        OR: [
+          { savedWordId: null },
+          { savedWordId: { notIn: degenerateWordIds } },
+        ],
+      }),
+    };
+  }
+
   async getQueue(userId: string) {
     await this.syncCards(userId);
 
+    const active = await this.activeCardsWhere(userId);
     const now = new Date();
     const [reviewCards, newCards] = await Promise.all([
       this.prisma.flashcard.findMany({
-        where: { userId, dueDate: { lte: now }, repetitions: { gt: 0 } },
+        where: { ...active, dueDate: { lte: now }, repetitions: { gt: 0 } },
         include: { savedWord: true, savedSentence: true },
         orderBy: { dueDate: 'asc' },
       }),
       this.prisma.flashcard.findMany({
-        where: { userId, dueDate: { lte: now }, repetitions: 0 },
+        where: { ...active, dueDate: { lte: now }, repetitions: 0 },
         include: { savedWord: true, savedSentence: true },
         orderBy: { createdAt: 'asc' },
         take: NEW_CARDS_PER_SESSION,
@@ -81,24 +109,37 @@ export class FlashcardsService {
     });
   }
 
+  async suspend(userId: string, id: string) {
+    const card = await this.prisma.flashcard.findFirst({
+      where: { id, userId },
+    });
+    if (!card) throw new NotFoundException('Flashcard not found');
+
+    return this.prisma.flashcard.update({
+      where: { id: card.id },
+      data: { suspended: true },
+    });
+  }
+
   async getStats(userId: string) {
     await this.syncCards(userId);
 
+    const active = await this.activeCardsWhere(userId);
     const now = new Date();
     const [reviewDue, newDue, newCards, learned, total] = await Promise.all([
       this.prisma.flashcard.count({
-        where: { userId, dueDate: { lte: now }, repetitions: { gt: 0 } },
+        where: { ...active, dueDate: { lte: now }, repetitions: { gt: 0 } },
       }),
       this.prisma.flashcard.count({
-        where: { userId, dueDate: { lte: now }, repetitions: 0 },
+        where: { ...active, dueDate: { lte: now }, repetitions: 0 },
       }),
       this.prisma.flashcard.count({
-        where: { userId, repetitions: 0 },
+        where: { ...active, repetitions: 0 },
       }),
       this.prisma.flashcard.count({
-        where: { userId, intervalDays: { gte: 21 } },
+        where: { ...active, intervalDays: { gte: 21 } },
       }),
-      this.prisma.flashcard.count({ where: { userId } }),
+      this.prisma.flashcard.count({ where: active }),
     ]);
 
     // "due" mirrors what getQueue will actually serve, so the start
