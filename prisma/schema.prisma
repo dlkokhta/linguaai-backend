@@ -33,6 +33,7 @@ model User {
   SavedWords     SavedWord[]
   WeeklyGoal     WeeklyGoal?
   ChatMessages   ChatMessage[]
+  Flashcards     Flashcard[]
 
   @@map("users")
 }
@@ -47,6 +48,8 @@ model SavedSentence {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @map("user_id")
 
+  flashcard Flashcard?
+
   @@map("saved_sentences")
 }
 
@@ -59,6 +62,8 @@ model SavedWord {
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @map("user_id")
+
+  flashcard Flashcard?
 
   @@map("saved_words")
 }
@@ -87,6 +92,30 @@ model WeeklyGoal {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("weekly_goals")
+}
+
+model Flashcard {
+  id           String   @id @default(uuid())
+  cardType     CardType @map("card_type")
+  easeFactor   Float    @default(2.5) @map("ease_factor")
+  intervalDays Int      @default(0) @map("interval_days")
+  repetitions  Int      @default(0)
+  dueDate      DateTime @default(now()) @map("due_date")
+
+  savedWord   SavedWord? @relation(fields: [savedWordId], references: [id], onDelete: Cascade)
+  savedWordId String?    @unique @map("saved_word_id")
+
+  savedSentence   SavedSentence? @relation(fields: [savedSentenceId], references: [id], onDelete: Cascade)
+  savedSentenceId String?        @unique @map("saved_sentence_id")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, dueDate])
+  @@map("flashcards")
 }
 
 model Account {
@@ -142,6 +171,11 @@ enum UserRole {
 enum AuthMethod {
   CREDENTIALS
   GOOGLE
+}
+
+enum CardType {
+  WORD
+  SENTENCE
 }
 
 enum TokenType {
