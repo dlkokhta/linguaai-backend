@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FlashcardsService } from './flashcards.service';
 import { AnswerCardDto } from './dto/answer-card.dto';
+import { CreateCardDto } from './dto/create-card.dto';
 
 @ApiTags('flashcards')
 @ApiBearerAuth('JWT-auth')
@@ -31,6 +32,15 @@ export class FlashcardsController {
   @Get('stats')
   getStats(@Req() req: Request) {
     return this.flashcardsService.getStats((req.user as { id: string }).id);
+  }
+
+  @ApiOperation({ summary: 'Create a custom card' })
+  @Post()
+  createCard(@Req() req: Request, @Body() dto: CreateCardDto) {
+    return this.flashcardsService.createCard(
+      (req.user as { id: string }).id,
+      dto,
+    );
   }
 
   @ApiOperation({ summary: 'Suspend a card (remove it from the deck)' })

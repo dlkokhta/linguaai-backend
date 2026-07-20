@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CardType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateCardDto } from './dto/create-card.dto';
 import { Grade, sm2 } from './sm2';
 
 const NEW_CARDS_PER_SESSION = 20;
@@ -106,6 +111,24 @@ export class FlashcardsService {
     return this.prisma.flashcard.update({
       where: { id: card.id },
       data: next,
+    });
+  }
+
+  async createCard(userId: string, dto: CreateCardDto) {
+    const normalize = (s: string) => s.trim().toLowerCase();
+    if (normalize(dto.front) === normalize(dto.back)) {
+      throw new BadRequestException(
+        'The front and back of a card must be different',
+      );
+    }
+
+    return this.prisma.flashcard.create({
+      data: {
+        userId,
+        cardType: CardType.CUSTOM,
+        front: dto.front,
+        back: dto.back,
+      },
     });
   }
 

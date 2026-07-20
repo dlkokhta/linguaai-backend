@@ -103,6 +103,10 @@ model Flashcard {
   dueDate      DateTime @default(now()) @map("due_date")
   suspended    Boolean  @default(false)
 
+  // Only set for CUSTOM cards; WORD/SENTENCE cards read from their relation
+  front String?
+  back  String?
+
   savedWord   SavedWord? @relation(fields: [savedWordId], references: [id], onDelete: Cascade)
   savedWordId String?    @unique @map("saved_word_id")
 
@@ -177,6 +181,7 @@ enum AuthMethod {
 enum CardType {
   WORD
   SENTENCE
+  CUSTOM
 }
 
 enum TokenType {
